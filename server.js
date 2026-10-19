@@ -7,14 +7,14 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    maxHttpBufferSize: 1e7 // Permitir imágenes Base64 de hasta 10MB
+    maxHttpBufferSize: 1e7 // Permitir imágenes y datos en Base64 de hasta 10MB
 });
 
 app.use(express.static(__dirname));
 
 const MEMORIES_FILE = path.join(__dirname, 'memories.json');
 
-// Recuerdos por defecto si el archivo no existe
+// Recuerdos iniciales por defecto
 const defaultMemories = [
     {
         id: 1,
@@ -59,9 +59,9 @@ let memories = loadMemories();
 let players = {};
 
 io.on('connection', (socket) => {
-    console.log('Usuario conectado:', socket.id);
+    console.log('Usuario conectado al museo:', socket.id);
 
-    // Enviar recuerdos actuales al conectarse
+    // Enviar los recuerdos actuales al usuario que entra
     socket.emit('updateMemories', memories);
 
     socket.on('joinGame', (playerData) => {
@@ -70,8 +70,12 @@ io.on('connection', (socket) => {
             name: playerData.name,
             role: playerData.role,
             x: playerData.role === 'oscar' ? 200 : 300,
+            y: 0,
             direction: 1,
-            isWalking: false
+            isWalking: false,
+            isCrouched: false,
+            chatMessage: "",
+            chatTimer: 0
         };
         io.emit('currentPlayers', players);
     });
@@ -79,9 +83,17 @@ io.on('connection', (socket) => {
     socket.on('playerMovement', (movementData) => {
         if (players[socket.id]) {
             players[socket.id].x = movementData.x;
+            players[socket.id].y = movementData.y;
             players[socket.id].direction = movementData.direction;
             players[socket.id].isWalking = movementData.isWalking;
+            players[socket.id].isCrouched = movementData.isCrouched;
             socket.broadcast.emit('playerMoved', players[socket.id]);
+        }
+    });
+
+    socket.on('chatMessage', (message) => {
+        if (players[socket.id]) {
+            io.emit('playerChat', { id: socket.id, message: message });
         }
     });
 
@@ -106,5 +118,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
+    console.log(`Servidor del museo corriendo en el puerto ${PORT}`);
 });
