@@ -1,28 +1,698 @@
-socket.on('joinGame', (playerData) => {
-        players[socket.id] = {
-            id: socket.id,
-            name: playerData.name,
-            role: playerData.role,
-            color: playerData.color || '#321827',
-            x: playerData.role === 'oscar' ? 200 : 300,
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Museo del Amor | Oscar & Evelin 💕</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Socket.io -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        .font-serif-title { font-family: 'Cinzel', serif; }
+        .font-cursive { font-family: 'Great Vibes', cursive; }
+        .font-sans-body { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #0b070c;
+            color: #f3e8ee;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: #0b070c;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.4); border-radius: 10px; }
+
+        .text-gold-gradient {
+            background: linear-gradient(135deg, #fff2a3 0%, #d4af37 50%, #aa7c11 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.02); opacity: 1; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .shimmer-btn {
+            background: linear-gradient(90deg, rgba(212,175,55,0.8) 0%, rgba(255,235,170,1) 50%, rgba(212,175,55,0.8) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden bg-stone-950 text-stone-100 font-sans-body">
+
+    <!-- CANVAS DEL JUEGO -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- PANTALLA DE INICIO Y PERSONALIZACIÓN -->
+    <div id="startScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-950/90 backdrop-blur-xl transition-all duration-700">
+        <canvas id="startParticleCanvas" class="absolute inset-0 pointer-events-none"></canvas>
+
+        <div class="relative z-10 max-w-2xl w-full bg-stone-900/85 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl gold-glow text-center space-y-5 max-h-[95vh] overflow-y-auto">
+            
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 via-rose-500 to-pink-500 shadow-xl text-white text-xl animate-pulse-subtle border-2 border-amber-300/50">
+                <i class="fa-solid fa-heart"></i>
+            </div>
+
+            <div class="space-y-1">
+                <p class="text-xs font-serif-title text-amber-300/80 tracking-[0.25em] uppercase">Bienvenida a tu Museo Especial</p>
+                <h1 class="text-2xl sm:text-4xl font-serif-title font-extrabold tracking-wide text-gold-gradient leading-tight">
+                    TE AMO MI NIÑA HERMOSA
+                </h1>
+                <div class="flex items-center justify-center gap-3 pt-1">
+                    <span class="h-[1px] w-10 bg-gradient-to-r from-transparent to-amber-500/60"></span>
+                    <h2 class="text-lg sm:text-xl font-cursive text-rose-300 tracking-wider">De Oscar para Evelin</h2>
+                    <span class="h-[1px] w-10 bg-gradient-to-l from-transparent to-amber-500/60"></span>
+                </div>
+            </div>
+
+            <!-- SELECCIÓN Y PERSONALIZACIÓN DE AVATAR -->
+            <div class="bg-stone-950/70 border border-amber-500/20 rounded-2xl p-4 text-left space-y-3 shadow-inner">
+                <h3 class="text-xs font-serif-title text-amber-200 uppercase tracking-widest text-center">1. Elige quién eres y personaliza tu avatar</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="selectRole('oscar')" id="btnOscar" class="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-center transition-all font-semibold text-amber-200 flex flex-col items-center gap-1.5">
+                        <i class="fa-solid fa-user-tie text-xl text-amber-400"></i>
+                        <span>Soy Oscar</span>
+                    </button>
+                    <button onclick="selectRole('evelin')" id="btnEvelin" class="p-3 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-center transition-all font-semibold text-rose-200 flex flex-col items-center gap-1.5">
+                        <i class="fa-solid fa-user-nurse text-xl text-rose-400"></i>
+                        <span>Soy Evelin</span>
+                    </button>
+                </div>
+
+                <div id="avatarCustomizer" class="hidden pt-3 border-t border-amber-500/20 space-y-2">
+                    <p class="text-[11px] text-amber-200 uppercase tracking-wider text-center">Personaliza el color de tu abrigo:</p>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="setAvatarColor('#321827')" class="w-7 h-7 rounded-full bg-[#321827] border-2 border-amber-400/60 shadow hover:scale-110 transition-transform" title="Vino clásico"></button>
+                        <button onclick="setAvatarColor('#1e3a8a')" class="w-7 h-7 rounded-full bg-blue-900 border-2 border-blue-400/60 shadow hover:scale-110 transition-transform" title="Azul elegante"></button>
+                        <button onclick="setAvatarColor('#065f46')" class="w-7 h-7 rounded-full bg-emerald-800 border-2 border-emerald-400/60 shadow hover:scale-110 transition-transform" title="Verde esmeralda"></button>
+                        <button onclick="setAvatarColor('#db2777')" class="w-7 h-7 rounded-full bg-pink-600 border-2 border-pink-400/60 shadow hover:scale-110 transition-transform" title="Rosa romántico"></button>
+                        <button onclick="setAvatarColor('#4b5563')" class="w-7 h-7 rounded-full bg-gray-600 border-2 border-gray-400/60 shadow hover:scale-110 transition-transform" title="Gris moderno"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INSTRUCCIONES -->
+            <div class="bg-stone-950/70 border border-amber-500/20 rounded-2xl p-3 text-left space-y-1 text-xs text-stone-300">
+                <p class="font-semibold text-amber-200"><i class="fa-solid fa-compass mr-1"></i> Controles:</p>
+                <p>• Caminar: <kbd class="bg-stone-800 px-1 py-0.5 rounded text-amber-300">A</kbd> / <kbd class="bg-stone-800 px-1.5 py-0.5 rounded text-amber-300">D</kbd> | Saltar: <kbd class="bg-stone-800 px-1 py-0.5 rounded text-amber-300">W</kbd> | Agacharse: <kbd class="bg-stone-800 px-1 py-0.5 rounded text-amber-300">S</kbd></p>
+                <p>• Inspeccionar cuadro: <kbd class="bg-stone-800 px-1.5 py-0.5 rounded text-rose-300">E</kbd> (cerca de una obra)</p>
+            </div>
+
+            <div class="pt-1">
+                <button id="btnStartGame" onclick="joinGame()" disabled class="w-full sm:w-auto px-10 py-3.5 rounded-full font-serif-title font-bold text-stone-950 text-sm tracking-widest uppercase shadow-2xl transition-all opacity-50 cursor-not-allowed shimmer-btn flex items-center justify-center gap-3 mx-auto">
+                    <span>Entrar al Museo Juntos</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI SUPERIOR -->
+    <div class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-20">
+        <div class="bg-stone-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-amber-500/30 shadow-lg pointer-events-auto flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-rose-500 flex items-center justify-center text-white text-xs shadow">
+                <i class="fa-solid fa-gem"></i>
+            </div>
+            <div>
+                <h1 class="text-xs sm:text-sm font-serif-title text-amber-200 font-semibold tracking-wider">Oscar & Evelin</h1>
+                <p class="text-[10px] text-rose-300/80 font-cursive text-sm">Museo Interactivo en Línea</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="btnAudio" onclick="toggleAudio()" class="bg-stone-900/80 hover:bg-stone-800 backdrop-blur-md p-3 rounded-full border border-amber-500/30 text-amber-300 shadow-lg flex items-center justify-center w-11 h-11">
+                <i id="audioIcon" class="fa-solid fa-volume-xmark text-stone-400"></i>
+            </button>
+            <button onclick="openAddModal()" class="bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white px-3 sm:px-4 py-2 rounded-full border border-amber-300/30 text-xs sm:text-sm font-medium shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span class="hidden sm:inline">Añadir Recuerdo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- BARRA DE CHAT FLOTANTE INFERIOR -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-stone-900/85 backdrop-blur-md border border-amber-500/30 rounded-2xl p-2 shadow-2xl pointer-events-auto z-30 flex items-center gap-2">
+        <input type="text" id="chatInput" placeholder="Escribe un mensaje para Evelin..." maxlength="100" onkeydown="handleChatKey(event)" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-200 focus:outline-none focus:border-amber-500">
+        <button onclick="sendChatMessage()" class="bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow transition-all">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </div>
+
+    <!-- NOTIFICACIÓN DE INSPECCIÓN -->
+    <div id="interactionPrompt" class="absolute bottom-20 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300 opacity-0 transform translate-y-4 z-20">
+        <div class="bg-stone-900/90 backdrop-blur-md border border-amber-400/50 text-amber-200 px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3">
+            <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-xs font-mono font-bold border border-amber-500/40">E</span>
+            <span class="text-xs sm:text-sm font-medium">Presiona <strong class="text-amber-300">E</strong> para inspeccionar la obra</span>
+        </div>
+    </div>
+
+    <!-- MODAL DE INSPECCIÓN -->
+    <div id="inspectModal" class="fixed inset-0 bg-stone-950/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-gradient-to-b from-stone-900 via-stone-900 to-stone-950 border border-amber-500/40 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative text-center space-y-4">
+            <button onclick="closeInspectModal()" class="absolute top-4 right-4 text-stone-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="overflow-hidden rounded-xl bg-stone-950 border border-amber-500/30 max-h-[300px] flex items-center justify-center p-2">
+                <img id="modalImage" src="" alt="Recuerdo" class="max-h-[280px] w-auto object-contain rounded-lg">
+            </div>
+            <h2 id="modalTitle" class="text-2xl font-serif-title font-bold text-amber-100"></h2>
+            <p class="text-xs text-rose-400" id="modalDate"></p>
+            <p id="modalDescription" class="text-stone-300 text-sm italic"></p>
+            <div class="flex justify-between items-center pt-2">
+                <button onclick="deleteCurrentMemory()" class="text-rose-400/70 hover:text-rose-400 text-xs flex items-center gap-1"><i class="fa-regular fa-trash-can"></i> Eliminar cuadro</button>
+                <button onclick="closeInspectModal()" class="bg-amber-600/30 text-amber-200 border border-amber-500/30 px-6 py-2 rounded-full text-xs font-medium">Seguir Recorriendo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AÑADIR RECUERDO -->
+    <div id="addModal" class="fixed inset-0 bg-stone-950/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-stone-900 border border-amber-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeAddModal()" class="absolute top-4 right-4 text-stone-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-xl font-serif-title text-amber-200 font-bold mb-1">Colgar Nuevo Cuadro</h3>
+            <p class="text-xs text-stone-400 mb-4">Sube una foto desde tu computadora o pon un enlace.</p>
+
+            <form id="addMemoryForm" onsubmit="saveMemory(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Título del Recuerdo</label>
+                    <input type="text" id="inputTitle" required placeholder="Ej: Nuestra cita especial" class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2.5 text-sm text-stone-200 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Fecha Especial</label>
+                    <input type="text" id="inputDate" required placeholder="Ej: 14 de Febrero" class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2.5 text-sm text-stone-200 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Fotografía de tu PC</label>
+                    <div class="space-y-2">
+                        <input type="file" id="inputFile" accept="image/*" onchange="handleFileSelect(event)" class="w-full bg-stone-950 border border-stone-700 rounded-xl p-2.5 text-xs text-stone-300 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer">
+                        <input type="url" id="inputUrl" placeholder="O pega una URL de imagen externa (opcional)" class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Dedicatoria Romántica</label>
+                    <textarea id="inputDescription" rows="3" required placeholder="Escribe un mensaje bonito..." class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2.5 text-sm text-stone-200 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-xs text-stone-400">Cancelar</button>
+                    <button type="submit" class="bg-gradient-to-r from-amber-600 to-rose-600 text-white px-5 py-2.5 rounded-xl text-xs font-semibold shadow">Guardar Cuadro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT DEL JUEGO -->
+    <script>
+        const socket = io();
+        let selectedRole = null;
+        let customAvatarColor = '#321827';
+
+        function selectRole(role) {
+            selectedRole = role;
+            customAvatarColor = role === 'oscar' ? '#321827' : '#db2777';
+            
+            document.getElementById('btnOscar').style.borderColor = role === 'oscar' ? '#d4af37' : 'rgba(212,175,55,0.2)';
+            document.getElementById('btnEvelin').style.borderColor = role === 'evelin' ? '#f472b6' : 'rgba(244,114,182,0.2)';
+            
+            document.getElementById('avatarCustomizer').classList.remove('hidden');
+            
+            const btn = document.getElementById('btnStartGame');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function setAvatarColor(color) {
+            customAvatarColor = color;
+        }
+
+        let memories = [
+            { id: 1, title: "Nuestra primera foto", date: "Temporada Navideña", description: "Nuestra primera foto en temporadas navideñas. Un recuerdo muy hermoso y especial.", imageUrl: "foto1.jpeg" },
+            { id: 2, title: "Nuestra primera salida", date: "Una cita inolvidable", description: "Un día inolvidable en el que estaba muy nervioso, pero extremadamente feliz de estar a tu lado.", imageUrl: "foto2.jpeg" }
+        ];
+
+        socket.on('updateMemories', (updatedMemories) => {
+            if (updatedMemories && updatedMemories.length > 0) memories = updatedMemories;
+        });
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startCanvas = document.getElementById('startParticleCanvas');
+        const startCtx = startCanvas ? startCanvas.getContext('2d') : null;
+
+        let width, height, gameStarted = false;
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            if (startCanvas) { startCanvas.width = width; startCanvas.height = height; }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const museum = {
+            paddingX: 320,
+            spacing: 380,
+            floorHeight: 120,
+            get totalWidth() { return (memories.length * this.spacing) + (this.paddingX * 2); }
+        };
+
+        let players = {};
+        let myId = null;
+        
+        const player = {
+            x: 220,
             y: 0,
+            vy: 0,
+            jumpPower: -12,
+            gravity: 0.6,
+            isGrounded: true,
+            isCrouched: false,
+            speed: 5,
+            vx: 0,
             direction: 1,
             isWalking: false,
-            isCrouched: false,
+            animFrame: 0,
+            animTimer: 0,
+            width: 36,
+            height: 72,
             chatMessage: "",
-            chatTimer: 0
+            chatTimer: 0,
+            color: '#321827'
         };
-        io.emit('currentPlayers', players);
-    });
 
-    socket.on('playerMovement', (movementData) => {
-        if (players[socket.id]) {
-            players[socket.id].x = movementData.x;
-            players[socket.id].y = movementData.y;
-            players[socket.id].direction = movementData.direction;
-            players[socket.id].isWalking = movementData.isWalking;
-            players[socket.id].isCrouched = movementData.isCrouched;
-            players[socket.id].color = movementData.color;
-            socket.broadcast.emit('playerMoved', players[socket.id]);
+        const camera = { x: 0, smoothness: 0.08 };
+        let activeMemoryNear = null;
+        let inspectModalOpen = false;
+        let uploadedImageBase64 = null;
+        const keys = { left: false, right: false, crouch: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (inspectModalOpen || !gameStarted) return;
+            if (document.activeElement.id === 'chatInput') return;
+
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
+            if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w' || e.key === ' ') {
+                if (player.isGrounded && !player.isCrouched) {
+                    player.vy = player.jumpPower;
+                    player.isGrounded = false;
+                }
+            }
+            if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') {
+                player.isCrouched = true;
+            }
+            if ((e.key.toLowerCase() === 'e') && activeMemoryNear) openInspectModal(activeMemoryNear);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false;
+            if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') {
+                player.isCrouched = false;
+            }
+        });
+
+        function joinGame() {
+            if (!selectedRole) return;
+            gameStarted = true;
+            player.color = customAvatarColor;
+            document.getElementById('startScreen').classList.add('opacity-0', 'pointer-events-none');
+
+            socket.emit('joinGame', {
+                name: selectedRole === 'oscar' ? 'Oscar' : 'Evelin',
+                role: selectedRole,
+                color: customAvatarColor
+            });
+
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            isAudioPlaying = true;
+            document.getElementById('audioIcon').className = 'fa-solid fa-volume-high text-amber-400 animate-pulse';
+            startMelody();
+
+            gameLoop();
         }
-    });
+
+        socket.on('currentPlayers', (serverPlayers) => { players = serverPlayers; myId = socket.id; });
+        socket.on('playerMoved', (pData) => { if (players[pData.id]) players[pData.id] = pData; });
+        socket.on('removePlayer', (id) => { delete players[id]; });
+        
+        socket.on('playerChat', (data) => {
+            if (players[data.id]) {
+                players[data.id].chatMessage = data.message;
+                players[data.id].chatTimer = 300;
+            }
+        });
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            player.chatMessage = msg;
+            player.chatTimer = 300;
+            socket.emit('chatMessage', msg);
+            input.value = "";
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        const hearts = Array.from({ length: 25 }, () => ({
+            x: Math.random() * width, y: Math.random() * height,
+            size: Math.random() * 8 + 6, speedY: Math.random() * 0.4 + 0.2,
+            opacity: Math.random() * 0.5 + 0.2, pulse: Math.random() * Math.PI
+        }));
+
+        function drawHearts(context) {
+            context.save();
+            hearts.forEach(h => {
+                h.y -= h.speedY; h.x += Math.sin(h.pulse) * 0.2; h.pulse += 0.02;
+                if (h.y < -20) { h.y = height + 20; h.x = Math.random() * width; }
+                context.fillStyle = `rgba(244, 114, 182, ${h.opacity})`;
+                context.beginPath(); context.arc(h.x, h.y, h.size * 0.4, 0, Math.PI * 2); context.fill();
+            });
+            context.restore();
+        }
+
+        function startParticleLoop() {
+            if (!gameStarted && startCtx) {
+                startCtx.clearRect(0, 0, width, height);
+                drawHearts(startCtx);
+                requestAnimationFrame(startParticleLoop);
+            }
+        }
+        startParticleLoop();
+
+        const imageCache = {};
+        function getLoadedImage(url) {
+            if (!url) return null;
+            if (!imageCache[url]) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.src = url;
+                imageCache[url] = img;
+            }
+            return imageCache[url];
+        }
+
+        function update() {
+            if (!gameStarted) return;
+
+            player.vx = 0;
+            if (!player.isCrouched) {
+                if (keys.left) { player.vx = -player.speed; player.direction = -1; player.isWalking = true; }
+                else if (keys.right) { player.vx = player.speed; player.direction = 1; player.isWalking = true; }
+                else { player.isWalking = false; }
+            } else { player.isWalking = false; }
+
+            player.x += player.vx;
+            player.vy += player.gravity;
+            player.y += player.vy;
+
+            if (player.y >= 0) { player.y = 0; player.vy = 0; player.isGrounded = true; }
+
+            if (player.x < 100) player.x = 100;
+            if (player.x > museum.totalWidth - 100) player.x = museum.totalWidth - 100;
+
+            if (player.isWalking) {
+                player.animTimer++;
+                if (player.animTimer % 8 === 0) player.animFrame = (player.animFrame + 1) % 4;
+            } else { player.animFrame = 0; }
+
+            if (player.chatTimer > 0) player.chatTimer--;
+
+            if (myId && players[myId]) {
+                players[myId].x = player.x;
+                players[myId].y = player.y;
+                players[myId].direction = player.direction;
+                players[myId].isWalking = player.isWalking;
+                players[myId].isCrouched = player.isCrouched;
+                players[myId].color = player.color;
+                players[myId].chatMessage = player.chatMessage;
+                players[myId].chatTimer = player.chatTimer;
+
+                socket.emit('playerMovement', {
+                    x: player.x, y: player.y,
+                    direction: player.direction,
+                    isWalking: player.isWalking,
+                    isCrouched: player.isCrouched,
+                    color: player.color
+                });
+            }
+
+            camera.x += ((player.x - width / 2) - camera.x) * camera.smoothness;
+            if (camera.x < 0) camera.x = 0;
+            if (camera.x > museum.totalWidth - width) camera.x = museum.totalWidth - width;
+
+            activeMemoryNear = null;
+            memories.forEach((mem, index) => {
+                const frameX = museum.paddingX + (index * museum.spacing);
+                if (Math.abs(player.x - frameX) < 75) {
+                    activeMemoryNear = mem;
+                    activeMemoryNear.index = index + 1;
+                }
+            });
+
+            const promptEl = document.getElementById('interactionPrompt');
+            if (activeMemoryNear && !inspectModalOpen) promptEl.classList.remove('opacity-0', 'translate-y-4');
+            else promptEl.classList.add('opacity-0', 'translate-y-4');
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+            const floorY = height - museum.floorHeight;
+
+            const wallGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+            wallGrad.addColorStop(0, '#120b13');
+            wallGrad.addColorStop(0.6, '#201323');
+            wallGrad.addColorStop(1, '#0e070f');
+            ctx.fillStyle = wallGrad;
+            ctx.fillRect(0, 0, width, floorY);
+
+            ctx.save();
+            ctx.translate(-camera.x, 0);
+
+            memories.forEach((mem, index) => {
+                const frameX = museum.paddingX + (index * museum.spacing);
+                const frameY = floorY - 210;
+                const frameW = 150;
+                const frameH = 180;
+
+                ctx.fillStyle = '#3d2314';
+                ctx.fillRect(frameX - frameW / 2, frameY - frameH / 2, frameW, frameH);
+
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 5;
+                ctx.strokeRect(frameX - frameW / 2 + 3, frameY - frameH / 2 + 3, frameW - 6, frameH - 6);
+
+                const innerW = frameW - 24;
+                const innerH = frameH - 36;
+                ctx.fillStyle = '#f8f5eb';
+                ctx.fillRect(frameX - innerW / 2, frameY - innerH / 2 - 4, innerW, innerH);
+
+                const imgW = innerW - 10;
+                const imgH = innerH - 10;
+                const imgX = frameX - imgW / 2;
+                const imgY = frameY - imgH / 2 - 9;
+
+                const img = getLoadedImage(mem.imageUrl);
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, imgX, imgY, imgW, imgH);
+                } else {
+                    ctx.fillStyle = '#221424';
+                    ctx.fillRect(imgX, imgY, imgW, imgH);
+                    ctx.fillStyle = '#f472b6';
+                    ctx.font = '18px serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('💖', frameX, frameY);
+                }
+
+                ctx.fillStyle = '#b8860b';
+                ctx.fillRect(frameX - 40, frameY + frameH / 2 - 16, 80, 18);
+                ctx.strokeStyle = '#fff8dc'; ctx.lineWidth = 1;
+                ctx.strokeRect(frameX - 39, frameY + frameH / 2 - 15, 78, 16);
+
+                ctx.fillStyle = '#111';
+                ctx.font = 'bold 9px Cinzel, serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`OBRA #${index + 1}`, frameX, frameY + frameH / 2 - 4);
+            });
+
+            const floorGrad = ctx.createLinearGradient(0, floorY, 0, height);
+            floorGrad.addColorStop(0, '#1c1020');
+            floorGrad.addColorStop(1, '#060308');
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(0, floorY, museum.totalWidth, museum.floorHeight);
+
+            Object.values(players).forEach(p => {
+                ctx.save();
+                const currentH = p.isCrouched ? 45 : 72;
+                ctx.translate(p.x, floorY - currentH + (p.y || 0));
+
+                ctx.fillStyle = 'rgba(0,0,0,0.45)';
+                ctx.beginPath(); ctx.ellipse(0, currentH + 2, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+                if (p.direction === -1) ctx.scale(-1, 1);
+
+                ctx.fillStyle = p.color || '#321827';
+                ctx.beginPath(); ctx.roundRect(-14, p.isCrouched ? 15 : 22, 28, p.isCrouched ? 25 : 38, 6); ctx.fill();
+
+                ctx.fillStyle = '#ffe0cb'; ctx.beginPath(); ctx.arc(0, p.isCrouched ? 5 : 10, 14, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = p.role === 'evelin' ? '#4a154b' : '#2b170c'; ctx.beginPath(); ctx.arc(0, p.isCrouched ? 1 : 6, 15, Math.PI, Math.PI * 2); ctx.fill();
+
+                ctx.restore();
+                ctx.save();
+                ctx.translate(p.x, floorY - currentH + (p.y || 0) - 15);
+                ctx.fillStyle = '#f3e8ee'; ctx.font = 'bold 11px Cinzel, serif'; ctx.textAlign = 'center';
+                ctx.fillText(p.name, 0, 0);
+
+                if (p.chatMessage && p.chatTimer > 0) {
+                    ctx.font = '12px Plus Jakarta Sans, sans-serif';
+                    const textWidth = ctx.measureText(p.chatMessage).width;
+                    const bubbleW = textWidth + 16;
+                    const bubbleH = 26;
+
+                    ctx.fillStyle = 'rgba(20, 10, 25, 0.9)';
+                    ctx.strokeStyle = '#d4af37';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.roundRect(-bubbleW / 2, -45 - bubbleH, bubbleW, bubbleH, 8);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fff2a3';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p.chatMessage, 0, -45 - 9);
+                }
+
+                ctx.restore();
+            });
+
+            ctx.restore();
+            drawHearts(ctx);
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        let audioCtx, isAudioPlaying = false, melodyInterval;
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        const melodyNotes = [261.63, 329.63, 392.00, 493.88, 220.00, 261.63, 329.63, 392.00];
+        function playNote(freq) {
+            if (!audioCtx || !isAudioPlaying) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 1.5);
+        }
+        function startMelody() {
+            let idx = 0;
+            melodyInterval = setInterval(() => { if (isAudioPlaying) { playNote(melodyNotes[idx]); idx = (idx+1)%melodyNotes.length; } }, 800);
+        }
+        function toggleAudio() {
+            initAudio(); if (audioCtx.state === 'suspended') audioCtx.resume();
+            isAudioPlaying = !isAudioPlaying;
+            document.getElementById('audioIcon').className = isAudioPlaying ? 'fa-solid fa-volume-high text-amber-400 animate-pulse' : 'fa-solid fa-volume-xmark text-stone-400';
+        }
+
+        function openInspectModal(mem) {
+            inspectModalOpen = true;
+            document.getElementById('modalTitle').innerText = mem.title;
+            document.getElementById('modalDate').innerText = mem.date;
+            document.getElementById('modalDescription').innerText = `"${mem.description}"`;
+            document.getElementById('modalImage').src = mem.imageUrl;
+            document.getElementById('inspectModal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+        function closeInspectModal() {
+            inspectModalOpen = false;
+            document.getElementById('inspectModal').classList.add('opacity-0', 'pointer-events-none');
+        }
+        function openAddModal() {
+            inspectModalOpen = true;
+            uploadedImageBase64 = null;
+            document.getElementById('addMemoryForm').reset();
+            document.getElementById('addModal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+        function closeAddModal() {
+            inspectModalOpen = false;
+            document.getElementById('addModal').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImageBase64 = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveMemory(e) {
+            e.preventDefault();
+            const urlInput = document.getElementById('inputUrl').value;
+            const finalImage = uploadedImageBase64 || urlInput || "foto1.jpeg";
+
+            const newMem = {
+                id: Date.now(),
+                title: document.getElementById('inputTitle').value,
+                date: document.getElementById('inputDate').value,
+                description: document.getElementById('inputDescription').value,
+                imageUrl: finalImage
+            };
+            socket.emit('addMemory', newMem);
+            closeAddModal();
+        }
+
+        function deleteCurrentMemory() {
+            if (!activeMemoryNear) return;
+            if (memories.length <= 1) { alert("Debes conservar al menos un cuadro 💕"); return; }
+            socket.emit('deleteMemory', activeMemoryNear.id);
+            closeInspectModal();
+        }
+    </script>
+</body>
+</html>
