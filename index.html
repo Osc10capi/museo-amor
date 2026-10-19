@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Museo en Línea | Oscar & Evelin 💕</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        .font-serif-title { font-family: 'Cinzel', serif; }
+        .font-cursive { font-family: 'Great Vibes', cursive; }
+        .font-sans-body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; overflow: hidden; background-color: #0b070c; color: #f3e8ee; }
+        #gameCanvas { display: block; width: 100vw; height: 100vh; background: #0b070c; }
+        .text-gold-gradient { background: linear-gradient(135deg, #fff2a3 0%, #d4af37 50%, #aa7c11 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gold-glow { box-shadow: 0 0 30px rgba(212, 175, 55, 0.25); }
+        .shimmer-btn { background: linear-gradient(90deg, rgba(212,175,55,0.8) 0%, rgba(255,235,170,1) 50%, rgba(212,175,55,0.8) 100%); background-size: 200% 100%; animation: shimmer 3s infinite; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden bg-stone-950 text-stone-100 font-sans-body">
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Pantalla de Selección de Personaje y Entrada -->
+    <div id="startScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/95 backdrop-blur-xl">
+        <div class="relative z-10 max-w-xl w-full bg-stone-900/90 border border-amber-500/40 rounded-3xl p-8 shadow-2xl gold-glow text-center space-y-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-amber-600 via-rose-500 to-pink-500 shadow-xl text-white text-2xl border-2 border-amber-300/50">
+                <i class="fa-solid fa-heart"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-serif-title font-extrabold text-gold-gradient">MUSEO DE AMOR EN LÍNEA</h1>
+                <p class="text-rose-300 font-cursive text-2xl mt-1">Oscar & Evelin</p>
+            </div>
+            
+            <div class="space-y-3 text-left bg-stone-950/60 p-4 rounded-2xl border border-amber-500/20">
+                <p class="text-xs text-amber-200 font-serif-title uppercase tracking-widest">Elige quién eres para entrar:</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="selectRole('oscar')" id="btnOscar" class="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-center transition-all font-semibold text-amber-200">
+                        👨‍💼 Soy Oscar
+                    </button>
+                    <button onclick="selectRole('evelin')" id="btnEvelin" class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-center transition-all font-semibold text-rose-200">
+                        👩‍🦰 Soy Evelin
+                    </button>
+                </div>
+            </div>
+
+            <button id="btnStartGame" onclick="joinGame()" disabled class="w-full py-4 rounded-full font-serif-title font-bold text-stone-950 text-base uppercase tracking-widest opacity-50 cursor-not-allowed shimmer-btn transition-all">
+                Entrar al Museo Juntos
+            </button>
+        </div>
+    </div>
+
+    <!-- UI del Museo -->
+    <div class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-20">
+        <div class="bg-stone-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-amber-500/30 shadow-lg pointer-events-auto flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-rose-500 flex items-center justify-center text-white text-xs shadow">
+                <i class="fa-solid fa-gem"></i>
+            </div>
+            <div>
+                <h1 class="text-xs sm:text-sm font-serif-title text-amber-200 font-semibold">Galería Conjunta</h1>
+                <p class="text-[10px] text-rose-300 font-cursive text-sm">Conectados en tiempo real</p>
+            </div>
+        </div>
+        <button onclick="toggleAudio()" class="bg-stone-900/80 hover:bg-stone-800 p-3 rounded-full border border-amber-500/30 text-amber-300 pointer-events-auto w-11 h-11 flex items-center justify-center shadow-lg">
+            <i id="audioIcon" class="fa-solid fa-volume-xmark text-stone-400"></i>
+        </button>
+    </div>
+
+    <div id="interactionPrompt" class="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300 opacity-0 z-20">
+        <div class="bg-stone-900/90 border border-amber-400/50 text-amber-200 px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3">
+            <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-xs font-mono font-bold">E</span>
+            <span class="text-xs sm:text-sm font-medium">Presiona <strong class="text-amber-300">E</strong> para inspeccionar la obra</span>
+        </div>
+    </div>
+
+    <!-- Modal de Cuadro -->
+    <div id="inspectModal" class="fixed inset-0 bg-stone-950/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-stone-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 shadow-2xl relative text-center space-y-4">
+            <button onclick="closeInspectModal()" class="absolute top-4 right-4 text-stone-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="overflow-hidden rounded-xl bg-stone-950 border border-amber-500/30 max-h-[320px] flex items-center justify-center">
+                <img id="modalImage" src="" alt="Recuerdo" class="max-h-[300px] w-auto object-contain">
+            </div>
+            <h2 id="modalTitle" class="text-2xl font-serif-title font-bold text-amber-100"></h2>
+            <p id="modalDescription" class="text-stone-300 text-sm italic"></p>
+            <button onclick="closeInspectModal()" class="bg-amber-600/30 text-amber-200 border border-amber-500/30 px-6 py-2 rounded-full text-xs font-medium">Seguir Recorriendo</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let selectedRole = null;
+
+        function selectRole(role) {
+            selectedRole = role;
+            document.getElementById('btnOscar').style.borderColor = role === 'oscar' ? '#d4af37' : 'rgba(212,175,55,0.2)';
+            document.getElementById('btnEvelin').style.borderColor = role === 'evelin' ? '#f472b6' : 'rgba(244,114,182,0.2)';
+            
+            const btn = document.getElementById('btnStartGame');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        const memories = [
+            { id: 1, title: "Nuestra primera foto", date: "Temporada Navideña", description: "Nuestra primera foto en temporadas navideñas. Un recuerdo muy hermoso y especial.", imageUrl: "foto1.jpeg" },
+            { id: 2, title: "Nuestra primera salida", date: "Una cita inolvidable", description: "Un día inolvidable en el que estaba muy nervioso, pero extremadamente feliz de estar a tu lado.", imageUrl: "foto2.jpeg" }
+        ];
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, gameStarted = false;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const museum = { paddingX: 300, spacing: 380, floorHeight: 120, totalWidth: 1200 };
+        let players = {};
+        let myId = null;
+        const player = { x: 200, speed: 5, vx: 0, direction: 1, isWalking: false, animFrame: 0, animTimer: 0, width: 36, height: 72 };
+        const camera = { x: 0 };
+        let activeMemoryNear = null;
+        let inspectModalOpen = false;
+        const keys = { left: false, right: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (inspectModalOpen || !gameStarted) return;
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
+            if ((e.key.toLowerCase() === 'e' || e.key === ' ') && activeMemoryNear) openInspectModal(activeMemoryNear);
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false;
+        });
+
+        function joinGame() {
+            if (!selectedRole) return;
+            gameStarted = true;
+            document.getElementById('startScreen').classList.add('opacity-0', 'pointer-events-none');
+            
+            socket.emit('joinGame', { name: selectedRole === 'oscar' ? 'Oscar' : 'Evelin', role: selectedRole });
+            
+            startAudio();
+            gameLoop();
+        }
+
+        socket.on('currentPlayers', (serverPlayers) => {
+            players = serverPlayers;
+            myId = socket.id;
+        });
+        socket.on('playerMoved', (pData) => {
+            if (players[pData.id]) players[pData.id] = pData;
+        });
+        socket.on('removePlayer', (id) => { delete players[id]; });
+
+        function update() {
+            if (!gameStarted) return;
+            player.vx = 0;
+            if (keys.left) { player.vx = -player.speed; player.direction = -1; player.isWalking = true; }
+            else if (keys.right) { player.vx = player.speed; player.direction = 1; player.isWalking = true; }
+            else { player.isWalking = false; }
+
+            player.x += player.vx;
+            if (player.x < 50) player.x = 50;
+            if (player.x > museum.totalWidth - 50) player.x = museum.totalWidth - 50;
+
+            if (player.isWalking) {
+                player.animTimer++;
+                if (player.animTimer % 8 === 0) player.animFrame = (player.animFrame + 1) % 4;
+            } else { player.animFrame = 0; }
+
+            if (myId && players[myId]) {
+                players[myId].x = player.x;
+                players[myId].direction = player.direction;
+                players[myId].isWalking = player.isWalking;
+                socket.emit('playerMovement', { x: player.x, direction: player.direction, isWalking: player.isWalking });
+            }
+
+            camera.x += ((player.x - width / 2) - camera.x) * 0.08;
+            if (camera.x < 0) camera.x = 0;
+            if (camera.x > museum.totalWidth - width) camera.x = museum.totalWidth - width;
+
+            activeMemoryNear = null;
+            memories.forEach((mem, i) => {
+                const fx = museum.paddingX + (i * museum.spacing);
+                if (Math.abs(player.x - fx) < 70) activeMemoryNear = mem;
+            });
+
+            const prompt = document.getElementById('interactionPrompt');
+            if (activeMemoryNear && !inspectModalOpen) prompt.classList.remove('opacity-0');
+            else prompt.classList.add('opacity-0');
+        }
+
+        const imageCache = {};
+        function getImg(url) {
+            if (!imageCache[url]) { const img = new Image(); img.src = url; imageCache[url] = img; }
+            return imageCache[url];
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+            const floorY = height - museum.floorHeight;
+
+            // Paredes
+            ctx.fillStyle = '#160d18';
+            ctx.fillRect(0, 0, width, floorY);
+
+            ctx.save();
+            ctx.translate(-camera.x, 0);
+
+            // Cuadros
+            memories.forEach((mem, i) => {
+                const fx = museum.paddingX + (i * museum.spacing);
+                const fy = floorY - 210;
+                ctx.fillStyle = '#d4af37';
+                ctx.fillRect(fx - 72, fy - 87, 144, 174);
+                ctx.fillStyle = '#0b070c';
+                ctx.fillRect(fx - 65, fy - 80, 130, 160);
+                const img = getImg(mem.imageUrl);
+                if (img.complete && img.naturalWidth) ctx.drawImage(img, fx - 60, fy - 75, 120, 140);
+            });
+
+            // Piso
+            ctx.fillStyle = '#110714';
+            ctx.fillRect(0, floorY, museum.totalWidth, museum.floorHeight);
+
+            // Dibujar a Todos los Jugadores Conectados (Oscar y Evelin)
+            Object.values(players).forEach(p => {
+                ctx.save();
+                ctx.translate(p.x, floorY - player.height);
+
+                // Sombra
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.beginPath(); ctx.ellipse(0, player.height + 2, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+                if (p.direction === -1) ctx.scale(-1, 1);
+
+                // Diferenciar colores: Oscar vs Evelin
+                const isEvelin = p.role === 'evelin';
+                ctx.fillStyle = isEvelin ? '#db2777' : '#321827'; 
+                ctx.beginPath(); ctx.roundRect(-14, 22, 28, 38, 8); ctx.fill();
+
+                // Cabeza y Cabello
+                ctx.fillStyle = '#ffe0cb'; ctx.beginPath(); ctx.arc(0, 10, 14, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = isEvelin ? '#4a154b' : '#2b170c'; ctx.beginPath(); ctx.arc(0, 6, 15, Math.PI, Math.PI * 2); ctx.fill();
+
+                // Nombre flotante arriba del avatar
+                ctx.fillStyle = '#f3e8ee'; ctx.font = '11px Cinzel, serif'; ctx.textAlign = 'center';
+                ctx.fillText(p.name, 0, -10);
+
+                ctx.restore();
+            });
+
+            ctx.restore();
+        }
+
+        function gameLoop() { update(); render(); requestAnimationFrame(gameLoop); }
+
+        // Audio Romántico
+        let audioCtx, isPlaying = false, audioInterval;
+        function startAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            isPlaying = true;
+            document.getElementById('audioIcon').className = 'fa-solid fa-volume-high text-amber-400 animate-pulse';
+            audioInterval = setInterval(() => {
+                if (!isPlaying) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.setValueAtTime([261.63, 329.63, 392.00, 523.25][Math.floor(Math.random()*4)], audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 1.5);
+            }, 800);
+        }
+        function toggleAudio() {
+            isPlaying = !isPlaying;
+            document.getElementById('audioIcon').className = isPlaying ? 'fa-solid fa-volume-high text-amber-400 animate-pulse' : 'fa-solid fa-volume-xmark text-stone-400';
+        }
+
+        function openInspectModal(mem) {
+            inspectModalOpen = true;
+            document.getElementById('modalTitle').innerText = mem.title;
+            document.getElementById('modalDescription').innerText = `"${mem.description}"`;
+            document.getElementById('modalImage').src = mem.imageUrl;
+            document.getElementById('inspectModal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+        function closeInspectModal() {
+            inspectModalOpen = false;
+            document.getElementById('inspectModal').classList.add('opacity-0', 'pointer-events-none');
+        }
+    </script>
+</body>
+</html>
