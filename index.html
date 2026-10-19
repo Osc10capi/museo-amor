@@ -3,93 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Museo en Línea | Oscar & Evelin 💕</title>
+    <title>Museo del Amor | Oscar & Evelin 💕</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
 
     <style>
         .font-serif-title { font-family: 'Cinzel', serif; }
         .font-cursive { font-family: 'Great Vibes', cursive; }
         .font-sans-body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; overflow: hidden; background-color: #0b070c; color: #f3e8ee; }
-        #gameCanvas { display: block; width: 100vw; height: 100vh; background: #0b070c; }
-        .text-gold-gradient { background: linear-gradient(135deg, #fff2a3 0%, #d4af37 50%, #aa7c11 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .gold-glow { box-shadow: 0 0 30px rgba(212, 175, 55, 0.25); }
-        .shimmer-btn { background: linear-gradient(90deg, rgba(212,175,55,0.8) 0%, rgba(255,235,170,1) 50%, rgba(212,175,55,0.8) 100%); background-size: 200% 100%; animation: shimmer 3s infinite; }
-        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #0b070c;
+            color: #f3e8ee;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: #0b070c;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.4); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(212, 175, 55, 0.7); }
+
+        .text-gold-gradient {
+            background: linear-gradient(135deg, #fff2a3 0%, #d4af37 50%, #aa7c11 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.02); opacity: 1; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .shimmer-btn {
+            background: linear-gradient(90deg, rgba(212,175,55,0.8) 0%, rgba(255,235,170,1) 50%, rgba(212,175,55,0.8) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite;
+        }
     </style>
 </head>
 <body class="relative w-screen h-screen overflow-hidden bg-stone-950 text-stone-100 font-sans-body">
 
+    <!-- CANVAS DEL JUEGO -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Pantalla de Selección de Personaje y Entrada -->
-    <div id="startScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/95 backdrop-blur-xl">
-        <div class="relative z-10 max-w-xl w-full bg-stone-900/90 border border-amber-500/40 rounded-3xl p-8 shadow-2xl gold-glow text-center space-y-6">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-amber-600 via-rose-500 to-pink-500 shadow-xl text-white text-2xl border-2 border-amber-300/50">
+    <!-- PANTALLA DE INICIO COMPLETA Y SELECCIÓN DE PERSONAJE -->
+    <div id="startScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-950/90 backdrop-blur-xl transition-all duration-700">
+        <canvas id="startParticleCanvas" class="absolute inset-0 pointer-events-none"></canvas>
+
+        <div class="relative z-10 max-w-2xl w-full bg-stone-900/80 border border-amber-500/40 rounded-3xl p-6 sm:p-10 shadow-2xl gold-glow text-center space-y-6 max-h-[92vh] overflow-y-auto">
+            
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-amber-600 via-rose-500 to-pink-500 shadow-xl text-white text-2xl animate-pulse-subtle border-2 border-amber-300/50">
                 <i class="fa-solid fa-heart"></i>
             </div>
-            <div>
-                <h1 class="text-3xl font-serif-title font-extrabold text-gold-gradient">MUSEO DE AMOR EN LÍNEA</h1>
-                <p class="text-rose-300 font-cursive text-2xl mt-1">Oscar & Evelin</p>
+
+            <div class="space-y-2">
+                <p class="text-xs sm:text-sm font-serif-title text-amber-300/80 tracking-[0.25em] uppercase">Bienvenida a tu Museo Especial</p>
+                <h1 class="text-2xl sm:text-4xl md:text-5xl font-serif-title font-extrabold tracking-wide text-gold-gradient leading-tight drop-shadow-md">
+                    TE AMO MI NIÑA HERMOSA
+                </h1>
+                <div class="flex items-center justify-center gap-3 pt-1">
+                    <span class="h-[1px] w-12 bg-gradient-to-r from-transparent to-amber-500/60"></span>
+                    <h2 class="text-xl sm:text-2xl font-cursive text-rose-300 tracking-wider">De Oscar para Evelin</h2>
+                    <span class="h-[1px] w-12 bg-gradient-to-l from-transparent to-amber-500/60"></span>
+                </div>
             </div>
-            
-            <div class="space-y-3 text-left bg-stone-950/60 p-4 rounded-2xl border border-amber-500/20">
-                <p class="text-xs text-amber-200 font-serif-title uppercase tracking-widest">Elige quién eres para entrar:</p>
+
+            <!-- SELECCIÓN DE PERSONAJE -->
+            <div class="bg-stone-950/70 border border-amber-500/20 rounded-2xl p-4 sm:p-5 text-left space-y-3 shadow-inner">
+                <h3 class="text-xs font-serif-title text-amber-200 uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-users text-amber-400"></i> Selecciona tu personaje
+                </h3>
+
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="selectRole('oscar')" id="btnOscar" class="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-center transition-all font-semibold text-amber-200">
-                        👨‍💼 Soy Oscar
+                    <button onclick="selectRole('oscar')" id="btnOscar" class="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-center transition-all font-semibold text-amber-200 flex flex-col items-center gap-2">
+                        <i class="fa-solid fa-user-tie text-2xl text-amber-400"></i>
+                        <span>Soy Oscar</span>
                     </button>
-                    <button onclick="selectRole('evelin')" id="btnEvelin" class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-center transition-all font-semibold text-rose-200">
-                        👩‍🦰 Soy Evelin
+                    <button onclick="selectRole('evelin')" id="btnEvelin" class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-center transition-all font-semibold text-rose-200 flex flex-col items-center gap-2">
+                        <i class="fa-solid fa-user-nurse text-2xl text-rose-400"></i>
+                        <span>Soy Evelin</span>
                     </button>
                 </div>
             </div>
 
-            <button id="btnStartGame" onclick="joinGame()" disabled class="w-full py-4 rounded-full font-serif-title font-bold text-stone-950 text-base uppercase tracking-widest opacity-50 cursor-not-allowed shimmer-btn transition-all">
-                Entrar al Museo Juntos
-            </button>
+            <!-- INSTRUCCIONES DEL JUEGO -->
+            <div class="bg-stone-950/70 border border-amber-500/20 rounded-2xl p-4 text-left space-y-2 shadow-inner">
+                <h3 class="text-xs font-serif-title text-amber-200 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-compass text-amber-400"></i> ¿Cómo recorrer la galería?
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-stone-300">
+                    <div class="flex items-start gap-2 bg-stone-900/80 p-2 rounded-xl border border-stone-800">
+                        <i class="fa-solid fa-keyboard text-amber-300 text-base mt-0.5"></i>
+                        <div>
+                            <p class="font-semibold text-stone-200">En Computadora</p>
+                            <p class="text-stone-400 text-[11px]">Usa <kbd class="bg-stone-800 px-1 py-0.5 rounded text-amber-300">A</kbd> / <kbd class="bg-stone-800 px-1 py-0.5 rounded text-amber-300">D</kbd> o las <kbd class="bg-stone-800 px-1 py-0.5 rounded text-amber-300">Flechas</kbd>.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-2 bg-stone-900/80 p-2 rounded-xl border border-stone-800">
+                        <i class="fa-solid fa-mobile-screen text-amber-300 text-base mt-0.5"></i>
+                        <div>
+                            <p class="font-semibold text-stone-200">En Celular</p>
+                            <p class="text-stone-400 text-[11px]">Usa las flechas táctiles en pantalla.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button id="btnStartGame" onclick="joinGame()" disabled class="w-full sm:w-auto px-10 py-4 rounded-full font-serif-title font-bold text-stone-950 text-sm sm:text-base tracking-widest uppercase shadow-2xl transition-all duration-300 opacity-50 cursor-not-allowed shimmer-btn flex items-center justify-center gap-3 mx-auto">
+                    <span>Iniciar Recorrido Juntos</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- UI del Museo -->
+    <!-- UI SUPERIOR -->
     <div class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-20">
         <div class="bg-stone-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-amber-500/30 shadow-lg pointer-events-auto flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-rose-500 flex items-center justify-center text-white text-xs shadow">
                 <i class="fa-solid fa-gem"></i>
             </div>
             <div>
-                <h1 class="text-xs sm:text-sm font-serif-title text-amber-200 font-semibold">Galería Conjunta</h1>
-                <p class="text-[10px] text-rose-300 font-cursive text-sm">Conectados en tiempo real</p>
+                <h1 class="text-xs sm:text-sm font-serif-title text-amber-200 font-semibold tracking-wider">Oscar & Evelin</h1>
+                <p class="text-[10px] text-rose-300/80 font-cursive text-sm">Museo Compartido en Tiempo Real</p>
             </div>
         </div>
-        <button onclick="toggleAudio()" class="bg-stone-900/80 hover:bg-stone-800 p-3 rounded-full border border-amber-500/30 text-amber-300 pointer-events-auto w-11 h-11 flex items-center justify-center shadow-lg">
-            <i id="audioIcon" class="fa-solid fa-volume-xmark text-stone-400"></i>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="btnAudio" onclick="toggleAudio()" class="bg-stone-900/80 hover:bg-stone-800 backdrop-blur-md p-3 rounded-full border border-amber-500/30 text-amber-300 transition-all hover:scale-105 shadow-lg flex items-center justify-center w-11 h-11">
+                <i id="audioIcon" class="fa-solid fa-volume-xmark text-stone-400"></i>
+            </button>
+
+            <button onclick="openAddModal()" class="bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white px-3 sm:px-4 py-2 rounded-full border border-amber-300/30 text-xs sm:text-sm font-medium transition-all hover:scale-105 shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span class="hidden sm:inline">Añadir Recuerdo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIÓN DE INSPECCIÓN -->
+    <div id="interactionPrompt" class="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300 opacity-0 transform translate-y-4 z-20">
+        <div class="bg-stone-900/90 backdrop-blur-md border border-amber-400/50 text-amber-200 px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 animate-pulse-subtle">
+            <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-xs font-mono font-bold border border-amber-500/40">E</span>
+            <span class="text-xs sm:text-sm font-medium">Presiona <strong class="text-amber-300">E</strong> o toca para inspeccionar</span>
+            <i class="fa-solid fa-sparkles text-amber-400 text-xs"></i>
+        </div>
+    </div>
+
+    <!-- CONTROLES TÁCTILES MÓVILES -->
+    <div class="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-none z-20 md:hidden">
+        <div class="flex gap-3 pointer-events-auto">
+            <button id="btnLeft" class="w-14 h-14 bg-stone-900/80 active:bg-amber-600/50 backdrop-blur-md rounded-2xl border border-amber-500/30 flex items-center justify-center text-amber-200 text-xl shadow-lg active:scale-90 transition-all">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button id="btnRight" class="w-14 h-14 bg-stone-900/80 active:bg-amber-600/50 backdrop-blur-md rounded-2xl border border-amber-500/30 flex items-center justify-center text-amber-200 text-xl shadow-lg active:scale-90 transition-all">
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+        <button id="btnAction" onclick="handleMobileInspect()" class="pointer-events-auto w-16 h-16 bg-gradient-to-tr from-amber-600 to-rose-600 active:from-amber-500 active:to-rose-500 rounded-full border border-amber-300/40 flex items-center justify-center text-white text-xl shadow-2xl opacity-50 pointer-events-none transition-all">
+            <i class="fa-solid fa-eye"></i>
         </button>
     </div>
 
-    <div id="interactionPrompt" class="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300 opacity-0 z-20">
-        <div class="bg-stone-900/90 border border-amber-400/50 text-amber-200 px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3">
-            <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-xs font-mono font-bold">E</span>
-            <span class="text-xs sm:text-sm font-medium">Presiona <strong class="text-amber-300">E</strong> para inspeccionar la obra</span>
-        </div>
-    </div>
-
-    <!-- Modal de Cuadro -->
+    <!-- MODAL DE INSPECCIÓN DE OBRA -->
     <div id="inspectModal" class="fixed inset-0 bg-stone-950/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
-        <div class="bg-stone-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 shadow-2xl relative text-center space-y-4">
-            <button onclick="closeInspectModal()" class="absolute top-4 right-4 text-stone-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <div class="overflow-hidden rounded-xl bg-stone-950 border border-amber-500/30 max-h-[320px] flex items-center justify-center">
-                <img id="modalImage" src="" alt="Recuerdo" class="max-h-[300px] w-auto object-contain">
+        <div class="bg-gradient-to-b from-stone-900 via-stone-900 to-stone-950 border border-amber-500/40 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl gold-glow transform scale-95 transition-all duration-300 flex flex-col relative">
+            
+            <button onclick="closeInspectModal()" class="absolute top-4 right-4 z-10 w-9 h-9 bg-stone-800/80 hover:bg-stone-700 text-stone-300 rounded-full flex items-center justify-center border border-stone-600">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="p-6 sm:p-8 space-y-6">
+                <div class="relative group mx-auto rounded-xl p-3 bg-gradient-to-b from-amber-700 via-amber-800 to-stone-900 shadow-2xl border border-amber-400/40 max-w-md">
+                    <div class="overflow-hidden rounded-lg max-h-[350px] flex items-center justify-center bg-stone-950 relative">
+                        <img id="modalImage" src="" alt="Recuerdo" class="w-full h-auto object-cover max-h-[350px]">
+                    </div>
+                    <div class="mt-3 bg-stone-900 border border-amber-500/30 px-3 py-1 text-center rounded text-[11px] font-serif-title text-amber-300 tracking-widest uppercase">
+                        Obra de Arte Original #<span id="modalArtNumber">1</span>
+                    </div>
+                </div>
+
+                <div class="text-center space-y-3">
+                    <div class="flex items-center justify-center gap-2 text-rose-400 text-xs font-semibold tracking-wider uppercase">
+                        <i class="fa-regular fa-calendar-heart"></i>
+                        <span id="modalDate">Fecha Especial</span>
+                    </div>
+
+                    <h2 id="modalTitle" class="text-2xl sm:text-3xl font-serif-title font-bold text-amber-100 tracking-wide">Título</h2>
+
+                    <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto my-3"></div>
+
+                    <p id="modalDescription" class="text-stone-300 text-sm sm:text-base leading-relaxed font-sans-body px-2 sm:px-6 italic">
+                        "Descripción"
+                    </p>
+                </div>
+
+                <div class="pt-4 border-t border-stone-800 flex justify-between items-center text-xs text-stone-500">
+                    <button id="btnDeleteMemory" onclick="deleteCurrentMemory()" class="text-rose-400/70 hover:text-rose-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-rose-950/30">
+                        <i class="fa-regular fa-trash-can"></i>
+                        <span>Eliminar cuadro</span>
+                    </button>
+                    
+                    <button onclick="closeInspectModal()" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30 px-5 py-2 rounded-full font-medium transition-all">
+                        Seguir Recorriendo
+                    </button>
+                </div>
             </div>
-            <h2 id="modalTitle" class="text-2xl font-serif-title font-bold text-amber-100"></h2>
-            <p id="modalDescription" class="text-stone-300 text-sm italic"></p>
-            <button onclick="closeInspectModal()" class="bg-amber-600/30 text-amber-200 border border-amber-500/30 px-6 py-2 rounded-full text-xs font-medium">Seguir Recorriendo</button>
         </div>
     </div>
 
+    <!-- MODAL AÑADIR NUEVO RECUERDO -->
+    <div id="addModal" class="fixed inset-0 bg-stone-950/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-stone-900 border border-amber-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative">
+            
+            <button onclick="closeAddModal()" class="absolute top-4 right-4 text-stone-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-xl font-serif-title text-amber-200 font-bold mb-1">Colgar Nuevo Cuadro</h3>
+            <p class="text-xs text-stone-400 mb-6">Añade una foto y una dedicatoria especial que se guardará para siempre en el servidor.</p>
+
+            <form id="addMemoryForm" onsubmit="saveMemory(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Título del Recuerdo</label>
+                    <input type="text" id="inputTitle" required placeholder="Ej: Nuestra primera cita" class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2.5 text-sm text-stone-200 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Fecha Especial</label>
+                    <input type="text" id="inputDate" required placeholder="Ej: 14 de Febrero" class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2.5 text-sm text-stone-200 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Fotografía del Recuerdo</label>
+                    <div class="space-y-2">
+                        <div class="relative">
+                            <input type="file" id="inputFile" accept="image/*" onchange="handleFileSelect(event)" class="hidden">
+                            <label for="inputFile" class="flex items-center justify-center gap-2 w-full bg-stone-800 hover:bg-stone-700 text-stone-300 border border-dashed border-amber-500/40 rounded-xl p-3 text-xs cursor-pointer transition-all">
+                                <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i>
+                                <span id="fileNameDisplay">Cargar foto desde tu dispositivo</span>
+                            </label>
+                        </div>
+                        <div class="text-center text-[10px] text-stone-500 uppercase tracking-widest font-semibold">O pega una URL</div>
+                        <input type="url" id="inputUrl" placeholder="https://ejemplo.com/foto.jpg" class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2 text-xs text-stone-200 focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-300 mb-1">Dedicatoria / Mensaje Romántico</label>
+                    <textarea id="inputDescription" rows="3" required placeholder="Escribe un mensaje bonito para Evelin..." class="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-2.5 text-sm text-stone-200 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-xs text-stone-400 hover:text-white">Cancelar</button>
+                    <button type="submit" class="bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-medium px-5 py-2.5 rounded-xl text-xs shadow-lg transition-all">
+                        Guardar en Servidor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CÓDIGO DEL JUEGO Y MULTIJUGADOR -->
     <script>
         const socket = io();
         let selectedRole = null;
@@ -104,74 +310,160 @@
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
 
-        const memories = [
+        let memories = [
             { id: 1, title: "Nuestra primera foto", date: "Temporada Navideña", description: "Nuestra primera foto en temporadas navideñas. Un recuerdo muy hermoso y especial.", imageUrl: "foto1.jpeg" },
             { id: 2, title: "Nuestra primera salida", date: "Una cita inolvidable", description: "Un día inolvidable en el que estaba muy nervioso, pero extremadamente feliz de estar a tu lado.", imageUrl: "foto2.jpeg" }
         ];
 
+        // Recibir recuerdos sincronizados desde el servidor
+        socket.on('updateMemories', (updatedMemories) => {
+            if (updatedMemories && updatedMemories.length > 0) {
+                memories = updatedMemories;
+            }
+        });
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const startCanvas = document.getElementById('startParticleCanvas');
+        const startCtx = startCanvas ? startCanvas.getContext('2d') : null;
+
         let width, height, gameStarted = false;
 
-        function resize() {
+        function resizeCanvas() {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
+            if (startCanvas) {
+                startCanvas.width = width;
+                startCanvas.height = height;
+            }
         }
-        window.addEventListener('resize', resize);
-        resize();
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-        const museum = { paddingX: 300, spacing: 380, floorHeight: 120, totalWidth: 1200 };
+        const museum = {
+            paddingX: 320,
+            spacing: 380,
+            floorHeight: 120,
+            get totalWidth() { return (memories.length * this.spacing) + (this.paddingX * 2); }
+        };
+
         let players = {};
         let myId = null;
-        const player = { x: 200, speed: 5, vx: 0, direction: 1, isWalking: false, animFrame: 0, animTimer: 0, width: 36, height: 72 };
-        const camera = { x: 0 };
+        const player = { x: 220, speed: 5, vx: 0, direction: 1, isWalking: false, animFrame: 0, animTimer: 0, width: 36, height: 72 };
+        const camera = { x: 0, smoothness: 0.08 };
         let activeMemoryNear = null;
         let inspectModalOpen = false;
+
         const keys = { left: false, right: false };
 
         window.addEventListener('keydown', (e) => {
             if (inspectModalOpen || !gameStarted) return;
             if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
             if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
-            if ((e.key.toLowerCase() === 'e' || e.key === ' ') && activeMemoryNear) openInspectModal(activeMemoryNear);
+            if (e.key.toLowerCase() === 'e' || e.key === ' ') {
+                if (activeMemoryNear) openInspectModal(activeMemoryNear);
+            }
         });
+
         window.addEventListener('keyup', (e) => {
             if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
             if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false;
         });
 
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        const bindTouch = (btn, keyName) => {
+            if (!btn) return;
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyName] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyName] = false; });
+            btn.addEventListener('mousedown', () => { keys[keyName] = true; });
+            btn.addEventListener('mouseup', () => { keys[keyName] = false; });
+        };
+        bindTouch(btnLeft, 'left');
+        bindTouch(btnRight, 'right');
+
+        function handleMobileInspect() {
+            if (activeMemoryNear && !inspectModalOpen) openInspectModal(activeMemoryNear);
+        }
+
         function joinGame() {
             if (!selectedRole) return;
             gameStarted = true;
             document.getElementById('startScreen').classList.add('opacity-0', 'pointer-events-none');
-            
+
             socket.emit('joinGame', { name: selectedRole === 'oscar' ? 'Oscar' : 'Evelin', role: selectedRole });
-            
-            startAudio();
+
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            isAudioPlaying = true;
+            document.getElementById('audioIcon').className = 'fa-solid fa-volume-high text-amber-400 animate-pulse';
+            startMelody();
+
             gameLoop();
         }
 
-        socket.on('currentPlayers', (serverPlayers) => {
-            players = serverPlayers;
-            myId = socket.id;
-        });
-        socket.on('playerMoved', (pData) => {
-            if (players[pData.id]) players[pData.id] = pData;
-        });
+        socket.on('currentPlayers', (serverPlayers) => { players = serverPlayers; myId = socket.id; });
+        socket.on('playerMoved', (pData) => { if (players[pData.id]) players[pData.id] = pData; });
         socket.on('removePlayer', (id) => { delete players[id]; });
+
+        const hearts = Array.from({ length: 30 }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            size: Math.random() * 8 + 6,
+            speedY: Math.random() * 0.4 + 0.2,
+            opacity: Math.random() * 0.5 + 0.2,
+            pulse: Math.random() * Math.PI
+        }));
+
+        function drawHearts(context) {
+            context.save();
+            hearts.forEach(h => {
+                h.y -= h.speedY;
+                h.x += Math.sin(h.pulse) * 0.2;
+                h.pulse += 0.02;
+                if (h.y < -20) { h.y = height + 20; h.x = Math.random() * width; }
+                context.fillStyle = `rgba(244, 114, 182, ${h.opacity})`;
+                context.beginPath();
+                context.arc(h.x, h.y, h.size * 0.4, 0, Math.PI * 2);
+                context.fill();
+            });
+            context.restore();
+        }
+
+        function startParticleLoop() {
+            if (!gameStarted && startCtx) {
+                startCtx.clearRect(0, 0, width, height);
+                drawHearts(startCtx);
+                requestAnimationFrame(startParticleLoop);
+            }
+        }
+        startParticleLoop();
+
+        const imageCache = {};
+        function getLoadedImage(url) {
+            if (!url) return null;
+            if (!imageCache[url]) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.src = url;
+                imageCache[url] = img;
+            }
+            return imageCache[url];
+        }
 
         function update() {
             if (!gameStarted) return;
+
             player.vx = 0;
             if (keys.left) { player.vx = -player.speed; player.direction = -1; player.isWalking = true; }
             else if (keys.right) { player.vx = player.speed; player.direction = 1; player.isWalking = true; }
             else { player.isWalking = false; }
 
             player.x += player.vx;
-            if (player.x < 50) player.x = 50;
-            if (player.x > museum.totalWidth - 50) player.x = museum.totalWidth - 50;
+            if (player.x < 100) player.x = 100;
+            if (player.x > museum.totalWidth - 100) player.x = museum.totalWidth - 100;
 
             if (player.isWalking) {
                 player.animTimer++;
@@ -185,117 +477,240 @@
                 socket.emit('playerMovement', { x: player.x, direction: player.direction, isWalking: player.isWalking });
             }
 
-            camera.x += ((player.x - width / 2) - camera.x) * 0.08;
+            camera.x += ((player.x - width / 2) - camera.x) * camera.smoothness;
             if (camera.x < 0) camera.x = 0;
             if (camera.x > museum.totalWidth - width) camera.x = museum.totalWidth - width;
 
             activeMemoryNear = null;
-            memories.forEach((mem, i) => {
-                const fx = museum.paddingX + (i * museum.spacing);
-                if (Math.abs(player.x - fx) < 70) activeMemoryNear = mem;
+            memories.forEach((mem, index) => {
+                const frameX = museum.paddingX + (index * museum.spacing);
+                if (Math.abs(player.x - frameX) < 75) {
+                    activeMemoryNear = mem;
+                    activeMemoryNear.index = index + 1;
+                }
             });
 
-            const prompt = document.getElementById('interactionPrompt');
-            if (activeMemoryNear && !inspectModalOpen) prompt.classList.remove('opacity-0');
-            else prompt.classList.add('opacity-0');
-        }
+            const promptEl = document.getElementById('interactionPrompt');
+            const mobileBtn = document.getElementById('btnAction');
 
-        const imageCache = {};
-        function getImg(url) {
-            if (!imageCache[url]) { const img = new Image(); img.src = url; imageCache[url] = img; }
-            return imageCache[url];
+            if (activeMemoryNear && !inspectModalOpen) {
+                promptEl.classList.remove('opacity-0', 'translate-y-4');
+                if (mobileBtn) mobileBtn.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                promptEl.classList.add('opacity-0', 'translate-y-4');
+                if (mobileBtn) mobileBtn.classList.add('opacity-50', 'pointer-events-none');
+            }
         }
 
         function render() {
             ctx.clearRect(0, 0, width, height);
+
             const floorY = height - museum.floorHeight;
 
-            // Paredes
-            ctx.fillStyle = '#160d18';
+            const wallGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+            wallGrad.addColorStop(0, '#120b13');
+            wallGrad.addColorStop(0.6, '#201323');
+            wallGrad.addColorStop(1, '#0e070f');
+            ctx.fillStyle = wallGrad;
             ctx.fillRect(0, 0, width, floorY);
 
             ctx.save();
             ctx.translate(-camera.x, 0);
 
-            // Cuadros
-            memories.forEach((mem, i) => {
-                const fx = museum.paddingX + (i * museum.spacing);
-                const fy = floorY - 210;
-                ctx.fillStyle = '#d4af37';
-                ctx.fillRect(fx - 72, fy - 87, 144, 174);
-                ctx.fillStyle = '#0b070c';
-                ctx.fillRect(fx - 65, fy - 80, 130, 160);
-                const img = getImg(mem.imageUrl);
-                if (img.complete && img.naturalWidth) ctx.drawImage(img, fx - 60, fy - 75, 120, 140);
+            memories.forEach((mem, index) => {
+                const frameX = museum.paddingX + (index * museum.spacing);
+                const frameY = floorY - 210;
+                const frameW = 145;
+                const frameH = 175;
+
+                ctx.fillStyle = '#4a2f13';
+                ctx.fillRect(frameX - frameW / 2, frameY - frameH / 2, frameW, frameH);
+
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(frameX - frameW / 2 + 2, frameY - frameH / 2 + 2, frameW - 4, frameH - 4);
+
+                const innerW = frameW - 24;
+                const innerH = frameH - 34;
+                ctx.fillStyle = '#f8f5eb';
+                ctx.fillRect(frameX - innerW / 2, frameY - innerH / 2 - 5, innerW, innerH);
+
+                const imgW = innerW - 10;
+                const imgH = innerH - 10;
+                const imgX = frameX - imgW / 2;
+                const imgY = frameY - imgH / 2 - 5;
+
+                const img = getLoadedImage(mem.imageUrl);
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, imgX, imgY, imgW, imgH);
+                } else {
+                    ctx.fillStyle = '#3a2b38';
+                    ctx.fillRect(imgX, imgY, imgW, imgH);
+                    ctx.fillStyle = '#f472b6';
+                    ctx.font = '20px serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('💖', frameX, frameY - 5);
+                }
+
+                ctx.fillStyle = '#b8860b';
+                ctx.fillRect(frameX - 35, frameY + frameH / 2 - 14, 70, 16);
+                ctx.fillStyle = '#111';
+                ctx.font = 'bold 8px Cinzel, serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`OBRA #${index + 1}`, frameX, frameY + frameH / 2 - 3);
             });
 
-            // Piso
             ctx.fillStyle = '#110714';
             ctx.fillRect(0, floorY, museum.totalWidth, museum.floorHeight);
 
-            // Dibujar a Todos los Jugadores Conectados (Oscar y Evelin)
+            // DIBUJAR AVATARES CONECTADOS
             Object.values(players).forEach(p => {
                 ctx.save();
                 ctx.translate(p.x, floorY - player.height);
 
-                // Sombra
                 ctx.fillStyle = 'rgba(0,0,0,0.4)';
                 ctx.beginPath(); ctx.ellipse(0, player.height + 2, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
 
                 if (p.direction === -1) ctx.scale(-1, 1);
 
-                // Diferenciar colores: Oscar vs Evelin
                 const isEvelin = p.role === 'evelin';
                 ctx.fillStyle = isEvelin ? '#db2777' : '#321827'; 
                 ctx.beginPath(); ctx.roundRect(-14, 22, 28, 38, 8); ctx.fill();
 
-                // Cabeza y Cabello
                 ctx.fillStyle = '#ffe0cb'; ctx.beginPath(); ctx.arc(0, 10, 14, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = isEvelin ? '#4a154b' : '#2b170c'; ctx.beginPath(); ctx.arc(0, 6, 15, Math.PI, Math.PI * 2); ctx.fill();
 
-                // Nombre flotante arriba del avatar
-                ctx.fillStyle = '#f3e8ee'; ctx.font = '11px Cinzel, serif'; ctx.textAlign = 'center';
+                ctx.fillStyle = '#f3e8ee'; ctx.font = 'bold 11px Cinzel, serif'; ctx.textAlign = 'center';
                 ctx.fillText(p.name, 0, -10);
 
                 ctx.restore();
             });
 
             ctx.restore();
+            drawHearts(ctx);
         }
 
-        function gameLoop() { update(); render(); requestAnimationFrame(gameLoop); }
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
 
-        // Audio Romántico
-        let audioCtx, isPlaying = false, audioInterval;
-        function startAudio() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            isPlaying = true;
-            document.getElementById('audioIcon').className = 'fa-solid fa-volume-high text-amber-400 animate-pulse';
-            audioInterval = setInterval(() => {
-                if (!isPlaying) return;
+        // AUDIO ROMÁNTICO
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let melodyInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        const melodyNotes = [261.63, 329.63, 392.00, 493.88, 220.00, 261.63, 329.63, 392.00];
+
+        function playNote(freq) {
+            if (!audioCtx || !isAudioPlaying) return;
+            try {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.frequency.setValueAtTime([261.63, 329.63, 392.00, 523.25][Math.floor(Math.random()*4)], audioCtx.currentTime);
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(); osc.stop(audioCtx.currentTime + 1.5);
-            }, 800);
-        }
-        function toggleAudio() {
-            isPlaying = !isPlaying;
-            document.getElementById('audioIcon').className = isPlaying ? 'fa-solid fa-volume-high text-amber-400 animate-pulse' : 'fa-solid fa-volume-xmark text-stone-400';
+            } catch (e) {}
         }
 
-        function openInspectModal(mem) {
-            inspectModalOpen = true;
-            document.getElementById('modalTitle').innerText = mem.title;
-            document.getElementById('modalDescription').innerText = `"${mem.description}"`;
-            document.getElementById('modalImage').src = mem.imageUrl;
-            document.getElementById('inspectModal').classList.remove('opacity-0', 'pointer-events-none');
+        function startMelody() {
+            let idx = 0;
+            melodyInterval = setInterval(() => {
+                if (isAudioPlaying) {
+                    playNote(melodyNotes[idx]);
+                    idx = (idx + 1) % melodyNotes.length;
+                }
+            }, 750);
         }
+
+        function toggleAudio() {
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            isAudioPlaying = !isAudioPlaying;
+            document.getElementById('audioIcon').className = isAudioPlaying ? 'fa-solid fa-volume-high text-amber-400 animate-pulse' : 'fa-solid fa-volume-xmark text-stone-400';
+        }
+
+        function openInspectModal(memory) {
+            inspectModalOpen = true;
+            document.getElementById('modalTitle').innerText = memory.title;
+            document.getElementById('modalDate').innerText = memory.date;
+            document.getElementById('modalDescription').innerText = `"${memory.description}"`;
+            document.getElementById('modalImage').src = memory.imageUrl;
+            document.getElementById('modalArtNumber').innerText = memory.index || 1;
+
+            const modal = document.getElementById('inspectModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
         function closeInspectModal() {
             inspectModalOpen = false;
             document.getElementById('inspectModal').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        let currentUploadedImageBase64 = null;
+
+        function openAddModal() {
+            inspectModalOpen = true;
+            currentUploadedImageBase64 = null;
+            document.getElementById('fileNameDisplay').innerText = "Cargar foto desde tu dispositivo";
+            document.getElementById('addMemoryForm').reset();
+            document.getElementById('addModal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeAddModal() {
+            inspectModalOpen = false;
+            document.getElementById('addModal').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('fileNameDisplay').innerText = file.name;
+                const reader = new FileReader();
+                reader.onload = function (e) { currentUploadedImageBase64 = e.target.result; };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveMemory(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('inputTitle').value;
+            const date = document.getElementById('inputDate').value;
+            const description = document.getElementById('inputDescription').value;
+            const urlInput = document.getElementById('inputUrl').value;
+
+            let finalImageUrl = currentUploadedImageBase64 || urlInput || "foto1.jpeg";
+
+            const newMem = {
+                id: Date.now(),
+                title: title,
+                date: date,
+                description: description,
+                imageUrl: finalImageUrl
+            };
+
+            // Enviar al servidor mediante Socket.io para que se guarde en todos lados
+            socket.emit('addMemory', newMem);
+
+            closeAddModal();
+        }
+
+        function deleteCurrentMemory() {
+            if (!activeMemoryNear) return;
+            if (memories.length <= 1) {
+                alert("Debes conservar al menos un cuadro en el museo 💕");
+                return;
+            }
+
+            socket.emit('deleteMemory', activeMemoryNear.id);
+            closeInspectModal();
         }
     </script>
 </body>
